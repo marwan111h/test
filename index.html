@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C2 Command Center</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: #0a0e17; 
+            color: #e6edf3; 
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: auto; }
+        
+        /* Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-2px); }
+        .stat-card .number { font-size: 32px; font-weight: bold; margin: 8px 0; }
+        .stat-card .label { color: #8b949e; font-size: 14px; }
+        .green { color: #3fb950; }
+        .yellow { color: #d29922; }
+        .red { color: #f85149; }
+        .blue { color: #58a6ff; }
+        .gray { color: #8b949e; }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 20px;
+            background: #161b22;
+            border-radius: 10px;
+            padding: 4px;
+        }
+        .tab {
+            padding: 12px 24px;
+            border: none;
+            background: transparent;
+            color: #8b949e;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+        .tab.active { background: #1f6feb; color: white; }
+        .tab:hover:not(.active) { background: #21262d; }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* Action Builder */
+        .action-row {
+            display: grid;
+            grid-template-columns: 150px 1fr 1fr 40px;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+            background: #161b22;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #30363d;
+        }
+        .action-row select, .action-row input {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            color: #e6edf3;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .action-row select:focus, .action-row input:focus {
+            outline: none;
+            border-color: #1f6feb;
+        }
+        
+        /* Buttons */
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        button:hover { filter: brightness(1.15); transform: translateY(-1px); }
+        .btn-primary { background: #1f6feb; color: white; }
+        .btn-success { background: #3fb950; color: white; }
+        .btn-danger { background: #f85149; color: white; }
+        .btn-warning { background: #d29922; color: white; }
+        .btn-sm { padding: 6px 14px; font-size: 13px; }
+        .btn-outline { background: transparent; border: 1px solid #30363d; color: #e6edf3; }
+        .btn-add { background: #238636; color: white; }
+        .btn-remove { background: transparent; border: none; color: #f85149; cursor: pointer; font-size: 18px; }
+        
+        /* Command buttons */
+        .command-bar {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        /* Bot table */
+        .bot-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: #161b22;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .bot-table th {
+            background: #21262d;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #8b949e;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+        .bot-table td {
+            padding: 10px 12px;
+            border-top: 1px solid #30363d;
+            font-size: 14px;
+        }
+        .bot-table tr:hover { background: #1c2333; }
+        .bot-table .status-badge {
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        /* JSON viewer */
+        .json-preview {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 16px;
+            font-family: 'Cascadia Code', 'Fira Code', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin: 16px 0;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 16px 0;
+        }
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #161b22;
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            cursor: pointer;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            margin: 24px 0 12px;
+            color: #e6edf3;
+        }
+        .section-title small { color: #8b949e; font-weight: normal; }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .action-row {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+            .stats-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="margin-bottom:30px;">🤖 C2 Command Center</h1>
+        
+        <!-- Stats -->
+        <div class="stats-grid" id="statsGrid"></div>
+        
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('command')">🎮 Command</button>
+            <button class="tab" onclick="switchTab('bots')">👥 Bots</button>
+            <button class="tab" onclick="switchTab('groups')">📁 Groups</button>
+            <button class="tab" onclick="switchTab('presets')">📋 Presets</button>
+        </div>
+        
+        <!-- Tab: Command -->
+        <div id="tab-command" class="tab-content active">
+            <h3 class="section-title">Action Builder</h3>
+            <p style="color:#8b949e; margin-bottom:12px;">Build a sequence of actions for all bots to execute</p>
+            
+            <div id="actionsContainer"></div>
+            
+            <div style="display:flex; gap:10px; margin:12px 0;">
+                <button class="btn-add" onclick="addAction()">+ Add Step</button>
+                <button class="btn-outline btn-sm" onclick="clearActions()">Clear All</button>
+            </div>
+            
+            <div class="command-bar">
+                <button class="btn-success" onclick="sendBroadcast()" style="padding:12px 30px;font-size:16px;">
+                    🚀 Execute on ALL Bots
+                </button>
+                <button class="btn-danger" onclick="stopAll()" style="padding:12px 30px;font-size:16px;">
+                    🛑 Stop All Bots
+                </button>
+            </div>
+            
+            <h3 class="section-title">Task Preview</h3>
+            <div class="json-preview" id="taskPreview">{ "actions": [] }</div>
+            
+            <h3 class="section-title">Response Log</h3>
+            <div class="json-preview" id="responseLog" style="max-height:250px;">Waiting for command...</div>
+        </div>
+        
+        <!-- Tab: Bots -->
+        <div id="tab-bots" class="tab-content">
+            <h3 class="section-title">Search Bots</h3>
+            <input type="text" id="botSearch" placeholder="Search by ID, IP, or status..." 
+                   style="width:100%;padding:10px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#e6edf3;margin-bottom:16px;"
+                   oninput="filterBotTable()">
+            
+            <table class="bot-table">
+                <thead>
+                    <tr>
+                        <th>Bot ID</th>
+                        <th>Status</th>
+                        <th>IP</th>
+                        <th>Last Message</th>
+                        <th>Last Seen</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="botsTableBody"></tbody>
+            </table>
+        </div>
+        
+        <!-- Tab: Groups -->
+        <div id="tab-groups" class="tab-content">
+            <h3 class="section-title">Create Group</h3>
+            <div style="display:flex;gap:10px;margin-bottom:16px;">
+                <input type="text" id="groupName" placeholder="Group name" 
+                       style="flex:1;padding:10px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#e6edf3;">
+                <input type="text" id="groupBots" placeholder="Bot IDs (comma separated)" 
+                       style="flex:2;padding:10px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#e6edf3;">
+                <button class="btn-primary" onclick="createGroup()">Create</button>
+            </div>
+            
+            <h3 class="section-title">Send Task to Group</h3>
+            <div style="display:flex;gap:10px;margin-bottom:16px;">
+                <input type="text" id="targetGroup" placeholder="Group name" 
+                       style="flex:1;padding:10px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#e6edf3;">
+                <button class="btn-success" onclick="sendToGroup()">Send Task to Group</button>
+            </div>
+            
+            <div id="groupsList"></div>
+        </div>
+        
+        <!-- Tab: Presets -->
+        <div id="tab-presets" class="tab-content">
+            <h3 class="section-title">Quick Presets</h3>
+            <p style="color:#8b949e;margin-bottom:16px;">Click a preset to load actions instantly</p>
+            
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;" id="presetsList">
+                <div class="stat-card" style="cursor:pointer;" onclick="loadPreset('login')">
+                    <div>🔑 Login + Cookies</div>
+                    <small style="color:#8b949e;">3 steps</small>
+                </div>
+                <div class="stat-card" style="cursor:pointer;" onclick="loadPreset('like')">
+                    <div>❤️ Like Post</div>
+                    <small style="color:#8b949e;">2 steps</small>
+                </div>
+                <div class="stat-card" style="cursor:pointer;" onclick="loadPreset('comment')">
+                    <div>💬 Comment</div>
+                    <small style="color:#8b949e;">3 steps</small>
+                </div>
+                <div class="stat-card" style="cursor:pointer;" onclick="loadPreset('scrape')">
+                    <div>📊 Scrape Page</div>
+                    <small style="color:#8b949e;">4 steps</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const AUTH_TOKEN = 'your-master-admin-token-here'; // غير دي
+        
+        // ====== STATE ======
+        let actions = [];
+        let actionIdCounter = 0;
+        
+        const ACTION_TYPES = [
+            { value: 'goto', label: '🌐 Go to URL' },
+            { value: 'login', label: '🔑 Login' },
+            { value: 'wait', label: '⏳ Wait (seconds)' },
+            { value: 'waitForSelector', label: '👁️ Wait for Element' },
+            { value: 'click', label: '🖱️ Click Element' },
+            { value: 'type', label: '⌨️ Type Text' },
+            { value: 'select', label: '📋 Select Option' },
+            { value: 'scroll', label: '📜 Scroll' },
+            { value: 'screenshot', label: '📸 Screenshot' },
+            { value: 'extract', label: '📝 Extract Text' },
+            { value: 'evaluate', label: '⚡ Run JavaScript' },
+            { value: 'inject', label: '💉 Inject Script/Style' }
+        ];
+        
+        // ====== PRESETS ======
+        const PRESETS = {
+            login: [
+                { type: 'goto', url: 'https://example.com/login', waitUntil: 'networkidle2' },
+                { type: 'login', loginUrl: 'https://example.com/login', usernameSelector: '#username', 
+                  username: 'myuser', passwordSelector: '#password', password: 'mypass', 
+                  submitSelector: 'button[type="submit"]', verifyUrl: 'https://example.com/dashboard' }
+            ],
+            like: [
+                { type: 'goto', url: 'https://example.com/post/123', waitUntil: 'networkidle2' },
+                { type: 'click', selector: 'button[aria-label="Like"], .like-button, [data-testid="like"]', waitAfter: 1 }
+            ],
+            comment: [
+                { type: 'goto', url: 'https://example.com/post/123', waitUntil: 'networkidle2' },
+                { type: 'click', selector: 'textarea, [contenteditable="true"], .comment-input' },
+                { type: 'type', selector: 'textarea, [contenteditable="true"], .comment-input', 
+                  value: 'Great post! 🔥', clearFirst: true },
+                { type: 'click', selector: 'button[type="submit"], [data-testid="comment-submit"]' }
+            ],
+            scrape: [
+                { type: 'goto', url: 'https://example.com/page', waitUntil: 'networkidle2' },
+                { type: 'wait', value: 3 },
+                { type: 'scroll', y: 1000 },
+                { type: 'extract', selector: 'h1, .title, article' },
+                { type: 'screenshot', fullPage: true }
+            ]
+        };
+        
+        // ====== FUNCTIONS ======
+        function switchTab(name) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.tab[onclick="switchTab('${name}')"]`).classList.add('active');
+            document.getElementById(`tab-${name}`).classList.add('active');
+        }
+        
+        function addAction(data = {}) {
+            const id = ++actionIdCounter;
+            const type = data.type || 'goto';
+            const container = document.getElementById('actionsContainer');
+            
+            const row = document.createElement('div');
+            row.className = 'action-row';
+            row.id = `action-${id}`;
+            
+            const options = ACTION_TYPES.map(t => 
+                `<option value="${t.value}" ${t.value === type ? 'selected' : ''}>${t.label}</option>`
+            ).join('');
+            
+            row.innerHTML = `
+                <select id="action-type-${id}" onchange="updateActionFields(${id})">
+                    ${options}
+                </select>
+                <input id="action-selector-${id}" placeholder="CSS Selector" value="${data.selector || ''}" />
+                <input id="action-value-${id}" placeholder="Value / URL / Text" value="${data.value || data.url || ''}" />
+                <button class="btn-remove" onclick="removeAction(${id})">✕</button>
+            `;
+            
+            container.appendChild(row);
+            actions.push(id);
+            updatePreview();
+        }
+        
+        function removeAction(id) {
+            const row = document.getElementById(`action-${id}`);
+            if (row) row.remove();
+            actions = actions.filter(a => a !== id);
+            updatePreview();
+        }
+        
+        function clearActions() {
+            document.getElementById('actionsContainer').innerHTML = '';
+            actions = [];
+            updatePreview();
+        }
+        
+        function updateActionFields(id) { updatePreview(); }
+        
+        function getActionsFromUI() {
+            return actions.map(id => {
+                const type = document.getElementById(`action-type-${id}`).value;
+                const selector = document.getElementById(`action-selector-${id}`).value;
+                const value = document.getElementById(`action-value-${id}`).value;
+                
+                const action = { type };
+                if (selector) action.selector = selector;
+                if (value) {
+                    if (type === 'goto' || type === 'login') action.url = value;
+                    else if (type === 'wait') action.value = value;
+                    else if (type === 'type') action.value = value;
+                    else if (type === 'scroll') action.y = parseInt(value) || 500;
+                    else if (type === 'evaluate' || type === 'inject') action.code = value;
+                    else action.value = value;
+                }
+                return action;
+            });
+        }
+        
+        function updatePreview() {
+            const task = { actions: getActionsFromUI() };
+            document.getElementById('taskPreview').textContent = JSON.stringify(task, null, 2);
+        }
+        
+        async function sendBroadcast() {
+            const taskActions = getActionsFromUI();
+            if (taskActions.length === 0) {
+                alert('Add at least one action step first!');
+                return;
+            }
+            
+            const log = document.getElementById('responseLog');
+            log.textContent = '🚀 Sending command to all bots...';
+            
+            try {
+                const res = await fetch('/api/task/broadcast', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${AUTH_TOKEN}`
+                    },
+                    body: JSON.stringify({ actions: taskActions })
+                });
+                const data = await res.json();
+                log.textContent = `✅ ${JSON.stringify(data, null, 2)}`;
+            } catch (err) {
+                log.textContent = `❌ Error: ${err.message}`;
+            }
+        }
+        
+        async function stopAll() {
+            const log = document.getElementById('responseLog');
+            log.textContent = '🛑 Stopping all bots...';
+            
+            try {
+                const res = await fetch('/api/stop/all', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${AUTH_TOKEN}`
+                    }
+                });
+                const data = await res.json();
+                log.textContent = `✅ ${JSON.stringify(data, null, 2)}`;
+            } catch (err) {
+                log.textContent = `❌ Error: ${err.message}`;
+            }
+        }
+        
+        function loadPreset(name) {
+            const preset = PRESETS[name];
+            if (!preset) return;
+            
+            clearActions();
+            preset.forEach(action => addAction(action));
+            updatePreview();
+            switchTab('command');
+        }
+        
+        function filterBotTable() {
+            const search = document.getElementById('botSearch').value.toLowerCase();
+            document.querySelectorAll('#botsTableBody tr').forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(search) ? '' : 'none';
+            });
+        }
+        
+        async function createGroup() {
+            const name = document.getElementById('groupName').value.trim();
+            const bots = document.getElementById('groupBots').value.split(',').map(b => b.trim()).filter(Boolean);
+            
+            if (!name || bots.length === 0) {
+                alert('Enter group name and bot IDs');
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/group/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${AUTH_TOKEN}`
+                    },
+                    body: JSON.stringify({ group: name, bots })
+                });
+                const data = await res.json();
+                alert(data.message);
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+        
+        async function sendToGroup() {
+            const group = document.getElementById('targetGroup').value.trim();
+            const taskActions = getActionsFromUI();
+            
+            if (!group || taskActions.length === 0) {
+                alert('Enter group name and add actions');
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/task/group', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${AUTH_TOKEN}`
+                    },
+                    body: JSON.stringify({ group, actions: taskActions })
+                });
+                const data = await res.json();
+                document.getElementById('responseLog').textContent = JSON.stringify(data, null, 2);
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+        
+        // ====== DASHBOARD UPDATE ======
+        async function updateDashboard() {
+            try {
+                const res = await fetch('/api/dashboard', {
+                    headers: { 'Authorization': `Bearer ${AUTH_TOKEN}` }
+                });
+                const data = await res.json();
+                
+                // Stats
+                document.getElementById('statsGrid').innerHTML = `
+                    <div class="stat-card">
+                        <div class="label">📦 Total Bots</div>
+                        <div class="number blue">${data.total}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">🟢 Idle</div>
+                        <div class="number green">${data.idle}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">🔄 Working</div>
+                        <div class="number yellow">${data.working}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">✅ Done</div>
+                        <div class="number green">${data.done}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">❌ Failed</div>
+                        <div class="number red">${data.failed}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="label">⚫ Offline</div>
+                        <div class="number gray">${data.offline || 0}</div>
+                    </div>
+                `;
+                
+                // Bot table (only on bots tab)
+                const tbody = document.getElementById('botsTableBody');
+                if (data.bots) {
+                    tbody.innerHTML = data.bots.map(b => `
+                        <tr>
+                            <td><code>${b.id || b.username || 'unknown'}</code></td>
+                            <td><span class="status-badge" style="background:${b.status === 'done' || b.status === 'idle' ? '#3fb95033' : b.status === 'failed' ? '#f8514933' : '#d2992233'};color:${b.status === 'done' || b.status === 'idle' ? '#3fb950' : b.status === 'failed' ? '#f85149' : '#d29922'}">${b.status}</span></td>
+                            <td>${b.ip || '-'}</td>
+                            <td>${b.lastMessage || '-'}</td>
+                            <td>${b.lastSeen ? new Date(parseInt(b.lastSeen)).toLocaleTimeString() : '-'}</td>
+                            <td><button class="btn-sm btn-outline">Send Task</button></td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (err) {
+                console.error('Dashboard update error:', err);
+            }
+        }
+        
+        // Initial setup
+        addAction();
+        updateDashboard();
+        setInterval(updateDashboard, 3000);
+    </script>
+</body>
+</html>
